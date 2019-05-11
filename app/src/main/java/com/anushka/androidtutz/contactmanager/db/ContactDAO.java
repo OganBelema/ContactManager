@@ -26,5 +26,5 @@ public interface ContactDAO {
     public List<Contact> getContacts();
 
     @Query("select * from contacts where contact_id ==:contactId")
-    public Contact getContract(long contactId);
+    public Contact getContact(long contactId);
 }
