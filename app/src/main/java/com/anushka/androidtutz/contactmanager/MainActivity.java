@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
         mContactsAppDatabase = Room.databaseBuilder(this, ContactsAppDatabase.class,
                 "ContactDB")
+                .addCallback(mCallback)
                 .build();
 
         new GetAllContactAsyncTask().execute();
@@ -252,5 +253,25 @@ public class MainActivity extends AppCompatActivity {
             contactsAdapter.notifyDataSetChanged();
         }
     }
-    
+
+    RoomDatabase.Callback mCallback = new RoomDatabase.Callback() {
+        @Override
+        public void onCreate(@NonNull SupportSQLiteDatabase db) {
+            super.onCreate(db);
+
+            Log.i("MainActivity", "Callback create invoked");
+
+            createContact("name 1", "email 1");
+            createContact("name 2", "email 2");
+            createContact("name 3", "email 3");
+            createContact("name 4", "email 4");
+        }
+
+        @Override
+        public void onOpen(@NonNull SupportSQLiteDatabase db) {
+            super.onOpen(db);
+
+            Log.i("MainActivity", "Callback open invoked");
+        }
+    };
 }
