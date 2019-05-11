@@ -1,8 +1,12 @@
 package com.anushka.androidtutz.contactmanager;
 
+import android.arch.persistence.db.SupportSQLiteDatabase;
 import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -11,6 +15,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
@@ -45,10 +50,9 @@ public class MainActivity extends AppCompatActivity {
 
         mContactsAppDatabase = Room.databaseBuilder(this, ContactsAppDatabase.class,
                 "ContactDB")
-                .allowMainThreadQueries()
                 .build();
 
-        contactArrayList.addAll(mContactsAppDatabase.getContactDoa().getContacts());
+        new GetAllContactAsyncTask().execute();
 
         contactsAdapter = new ContactsAdapter(this, contactArrayList, MainActivity.this);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
@@ -160,8 +164,8 @@ public class MainActivity extends AppCompatActivity {
     private void deleteContact(Contact contact, int position) {
 
         contactArrayList.remove(position);
-        mContactsAppDatabase.getContactDoa().deleteContact(contact);
-        contactsAdapter.notifyDataSetChanged();
+
+        new DeleteContactAsyncTask().execute(contact);
     }
 
     private void updateContact(String name, String email, int position) {
@@ -171,28 +175,82 @@ public class MainActivity extends AppCompatActivity {
         contact.setName(name);
         contact.setEmail(email);
 
-        mContactsAppDatabase.getContactDoa().updateContact(contact);
+        new UpdateContactAsyncTask().execute(contact);
 
         contactArrayList.set(position, contact);
-
-        contactsAdapter.notifyDataSetChanged();
-
 
     }
 
     private void createContact(String name, String email) {
+        new CreateContactAsyncTask().execute(new Contact(0, name, email));
+    }
 
-        long id = mContactsAppDatabase.getContactDoa().addContact(new Contact(0, name, email));
+    private class GetAllContactAsyncTask extends AsyncTask<Void, Void, Void> {
 
-
-        Contact contact = mContactsAppDatabase.getContactDoa().getContact(id);
-
-        if (contact != null) {
-
-            contactArrayList.add(0, contact);
-            contactsAdapter.notifyDataSetChanged();
-
+        @Override
+        protected Void doInBackground(Void... voids) {
+            contactArrayList.addAll(mContactsAppDatabase.getContactDoa().getContacts());
+            return null;
         }
 
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            contactsAdapter.notifyDataSetChanged();
+        }
     }
+
+    private class CreateContactAsyncTask extends AsyncTask<Contact, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Contact... contacts) {
+            long id = mContactsAppDatabase.getContactDoa().addContact(contacts[0]);
+
+
+            Contact contact = mContactsAppDatabase.getContactDoa().getContact(id);
+
+            if (contact != null) {
+
+                contactArrayList.add(0, contact);
+
+
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            contactsAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private class UpdateContactAsyncTask extends AsyncTask<Contact, Void, Void> {
+        @Override
+        protected Void doInBackground(Contact... contacts) {
+            mContactsAppDatabase.getContactDoa().updateContact(contacts[0]);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            contactsAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private class DeleteContactAsyncTask extends AsyncTask<Contact, Void, Void> {
+        @Override
+        protected Void doInBackground(Contact... contacts) {
+            mContactsAppDatabase.getContactDoa().deleteContact(contacts[0]);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            contactsAdapter.notifyDataSetChanged();
+        }
+    }
+    
 }
